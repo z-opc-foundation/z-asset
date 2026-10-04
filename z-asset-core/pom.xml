@@ -19,6 +19,14 @@
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-boot-datasource-starter</artifactId>
         </dependency>
+        <!-- JSON 序列化（attributes 落 z_asset.attributes，列语义是 JSON），
+             统一走 z-util-parser-json，与 z-indexer-core / z-config-core 同源。
+             本模块此前只有一条传递路径上带着它（经 z-boot-datasource-starter），
+             本次起直接使用 JsonUtil，故显式声明，不吃传递依赖。 -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-util-parser-json</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>

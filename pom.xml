@@ -40,4 +40,30 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!-- 全仓统一测试台(与 z-rpa / z-product / z-config 同款;版本由 floor/spring-boot
+         junit-bom 下发)。此前本仓没有测试台也无测试目录,新增测试的模块不再各自声明 junit。 -->
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- AssetCollector 的 mapper 依赖靠 Mockito 打桩(仓内首次引入,版本同样由 BOM 下发) -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
