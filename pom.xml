@@ -3,13 +3,21 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <!-- 2026-10-05: parent 从 z-opc 换成 z-boot-parent，与 z-product / z-rpa / z-trade 等
+         33 个仓对齐（全工作区 38 个有 parent 的仓里，只有本仓还挂在业务仓 parent 上）。
+         1.0.21 是 org 事实标准版本（33/38 在用），照 z-product 的写法。
+         换 parent 会让本仓版本从「继承 z-opc 的 1.0.0-SNAPSHOT」变成「继承 z-boot-parent 的
+         1.0.21」，故下面显式钉住 1.0.0-SNAPSHOT 保持面值不变 —— 消费方
+         z-opc/bootstraps 的 dependencyManagement 把 z-asset-{api,core,web} 钉在
+         ${project.version}（= 1.0.0-SNAPSHOT），面值变了它就拉不到。 -->
     <parent>
         <groupId>io.github.yuku123</groupId>
-        <artifactId>z-opc</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
+        <artifactId>z-boot-parent</artifactId>
+        <version>1.0.21</version>
+        <relativePath/>
     </parent>
     <artifactId>z-asset</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
         <module>z-asset-api</module>
