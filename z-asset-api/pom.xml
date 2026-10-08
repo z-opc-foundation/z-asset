@@ -9,6 +9,8 @@
         <version>1.0.1</version>
     </parent>
     <artifactId>z-asset-api</artifactId>
+    <!-- 旧账：central 报缺 name，2026-10-08 补。 -->
+    <name>z-asset-api</name>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>
