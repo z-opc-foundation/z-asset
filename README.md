@@ -18,7 +18,7 @@
 | `z-asset-core` | `io.github.yuku123:z-asset-core` | **领域层**：`AssetProviderRegistry`（注册表）、`AssetProviderRegistrationBean`（`BeanPostProcessor` 自动登记）、`AssetCollector`（采集与落库）、`AssetEntity`（`@TableName("z_asset")`）+ `AssetMapper`。 |
 | `z-asset-web` | `io.github.yuku123:z-asset-web` | **Web 层**：`AssetController`（`/api/asset/**`）+ `AssetAutoConfiguration`（模块级数据源、`SqlSessionFactory`、`@MapperScan`），通过 `AutoConfiguration.imports` 自动装配。 |
 
-根 POM：`packaging=pom`，`<version>1.0.1</version>`，parent `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘），3 个 `<module>` 全是库件。
+根 POM：`packaging=pom`，`<version>1.0.1</version>`，parent `io.github.yuku123:z-boot-parent:1.2.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘），3 个 `<module>` 全是库件。
 
 仓内另有 `_frontend/z-asset-suit/`：React 19 + antd 6 + Vite 6 的独立管理台壳（`"private": true`，不发布 npm），与三个 Maven 模块互不耦合。
 
@@ -70,7 +70,7 @@ mvn clean install -DskipTests   # 全 reactor：聚合根 + 3 个模块
 mvn test                        # 1 个测试类、7 支 @Test（core 模块，Mockito 打桩 mapper）
 ```
 
-构建需要能从 repo1 解析到 `io.github.yuku123:z-boot-parent:1.1.0`（parent 不在磁盘上）。
+构建需要能从 repo1 解析到 `io.github.yuku123:z-boot-parent:1.2.0`（parent 不在磁盘上）。
 
 ### 作为库被引用
 
