@@ -12,7 +12,7 @@ z-asset 是 z-opc-foundation 的**资产台账服务**：把散在各业务模�
 
 ```
 z-asset/
-├── pom.xml                    # 聚合根：parent z-boot-parent:1.1.0，<version>1.0.1</version>，3 个 <module>，central profile
+├── pom.xml                    # 聚合根：parent z-boot-parent:1.2.4，<version>1.0.1</version>，3 个 <module>，central profile
 ├── LICENSE                    # MIT
 ├── README.md
 ├── z-asset-api/               # SPI 定义：AssetProvider 接口 + 内嵌 AssetDTO
