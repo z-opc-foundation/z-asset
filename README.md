@@ -1,10 +1,15 @@
 # z-asset
 
-> 资产台账服务 —— 统一采集各业务模块的资产（数据库 / 模型服务 / 缓存 / 队列 / 存储桶……）进一张 `z_asset` 表，对外只给三个 REST 端点
+> 企业资产台账 —— 管「公司买了什么、归谁、什么时候到期」
 
-各业务模块各自有一堆「资产」（自己用的库、模型服务、缓存、消息队列、OSS 桶），但没有一处能看全。本仓提供一套统一形状：业务模块实现 `AssetProvider` 接口声明自己能提供什么，本仓负责自动登记、周期采集、落库、对外查询。
+实物设备（服务器、网络设备、办公电脑）走采购→入库→领用→在用→归还→报废；权益项（域名、SSL 证书、
+软件许可、云订阅）有到期日，到期前必须提醒。账目落到一张 `z_asset` 表。
 
-它由三段组成：**SPI（`z-asset-api`）+ 采集器与注册中心（`z-asset-core`）+ REST 面与自动装配（`z-asset-web`）**。
+**技术资源**（数据库 / 缓存 / 队列 / 模型服务 / 存储桶）是运行态、由各模块主动上报的东西，
+2026-11-19 起归 **z-meta** 的 `z_resource` 台账（`ResourceProvider` SPI + `ResourceCollector` +
+`ResourceController`）。本仓不再提供技术资源上报。
+
+它由三段组成：**枚举与契约（`z-asset-api`）+ 领域层与状态机（`z-asset-core`）+ REST 面与自动装配（`z-asset-web`）**。
 
 **技术栈：** Java 8 · Spring Boot（经 `z-boot-web-starter` / `z-boot-datasource-starter` 引入）· MyBatis-Plus（`BaseMapper` + `LambdaQueryWrapper`）· Druid + MySQL 驱动 · JUnit 5 + Mockito
 
@@ -14,11 +19,11 @@
 
 | 模块 | 坐标 | 职责 |
 |------|------|------|
-| `z-asset-api` | `io.github.yuku123:z-asset-api` | **SPI 定义**：`AssetProvider` 接口（5 个方法）+ 内嵌 `AssetDTO`（10 字段）。业务模块只依赖这一层就能接入。 |
-| `z-asset-core` | `io.github.yuku123:z-asset-core` | **领域层**：`AssetProviderRegistry`（注册表）、`AssetProviderRegistrationBean`（`BeanPostProcessor` 自动登记）、`AssetCollector`（采集与落库）、`AssetEntity`（`@TableName("z_asset")`）+ `AssetMapper`。 |
+| `z-asset-api` | `io.github.yuku123:z-asset-api` | **契约定义**：`AssetCategory`（2 个枚举值：实物 / 权益）、`AssetLifecycle`（7 个枚举值）、`AssetTransitionRequest`（流转请求）。 |
+| `z-asset-core` | `io.github.yuku123:z-asset-core` | **领域层**：`ZAssetDO`（`@TableName("z_asset")`，18 个字段）+ `ZAssetMapper`、`AssetLifecycleService`（状态机与合法流转表）、`AssetService`（流转校验、到期扫描、分类统计）。实体与服务方法带 `@BizModel` / `@BizField` / `@BizMethod` / `@BizCause`（注解来自 `z-meta-api`，纯契约 jar）。 |
 | `z-asset-web` | `io.github.yuku123:z-asset-web` | **Web 层**：`AssetController`（`/api/asset/**`）+ `AssetAutoConfiguration`（模块级数据源、`SqlSessionFactory`、`@MapperScan`），通过 `AutoConfiguration.imports` 自动装配。 |
 
-根 POM：`packaging=pom`，`<version>1.0.1</version>`，parent `io.github.yuku123:z-boot-parent:1.2.4`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘），3 个 `<module>` 全是库件。
+根 POM：`packaging=pom`，`<version>1.0.1</version>`，parent `io.github.yuku123:z-boot-parent:1.2.6`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘），3 个 `<module>` 全是库件。
 
 仓内另有 `_frontend/z-asset-suit/`：React 19 + antd 6 + Vite 6 的独立管理台壳（`"private": true`，不发布 npm），与三个 Maven 模块互不耦合。
 
@@ -26,22 +31,41 @@
 
 ## 🧩 核心能力
 
-### 接入一个资产来源
+### 资产分类
 
-实现 `AssetProvider` 并声明为 bean 即可，**不需要在本仓改任何代码**：
+`AssetCategory` 两个值：`PHYSICAL`（实物：采购→领用→归还→报废）、`ENTITLEMENT`（权益：域名 / 证书 /
+许可 / 订阅，必有到期日）。分类决定一件东西**该不该有到期日**，也决定盘点时怎么问。
+
+### 生命周期状态机
+
+`AssetLifecycle` 七个状态：`PURCHASED` `IN_STOCK` `ALLOCATED` `IN_USE` `RETURNED` `EXPIRED` `RETIRED`。
+
+合法流转由 `AssetLifecycleService` 单独守一张流转表，非法跳转直接拒绝、不落库 ——
+「已报废的机器又被人领走了」这种事一旦进了账，盘点时才发现就晚了。`RETIRED` 是终态。
+
+流转到 `ALLOCATED` / `IN_USE` 必须带责任人，否则拒绝。
+
+### 模型口径写在代码里
+
+资产表的业务口径不是写在文档里，而是用 z-meta 的注解写在实体上：
 
 ```java
-@Component
-public class MyModuleAssetProvider implements AssetProvider {
-    @Override public String getModule() { return "my-module"; }
-    @Override public String getAssetType() { return "DATABASE"; }
-    @Override public List<AssetDTO> listAssets() { /* ... */ }
-    @Override public AssetDTO getAssetDetail(String assetCode) { /* ... */ }
-    @Override public boolean isHealthy() { return true; }
+@TableName("z_asset")
+@BizModel(name = "企业资产", module = "asset", description = "公司持有的实物设备与权益项")
+public class ZAssetDO {
+    @BizField(name = "资产大类", type = BizField.FieldType.ENUM, dictCode = "asset_category")
+    private String assetCategory;
+    ...
 }
 ```
 
-`AssetProviderRegistrationBean` 会在这个 bean 初始化完成后把它登记进 `AssetProviderRegistry`。
+宿主里只要同时有 z-meta 与本仓，z-meta 的采集器就会把这份口径扫走，
+汇进 `GET /api/meta/openapi.json` 的 `components.schemas` 与 `x-methods`，
+再被认知板块（`z-ontology-meta`）吃成本体 —— 资产台账的模型、字段、流转语义、因果边
+因此不在任何一份需要人工同步的文档里。
+
+`@BizCause` 还能把因果边一并声明出来：本仓声明了「执行流转 → 资产责任发生转移」
+（前提：流转合法且已指定责任人）与「资产台账发生变更」（前提：有人操作了资产流转）。
 
 ### REST 端点
 
@@ -49,15 +73,13 @@ public class MyModuleAssetProvider implements AssetProvider {
 
 | 方法 | 路径 | 作用 |
 |---|---|---|
-| POST | `/api/asset/collect` | 触发一次全量采集（遍历所有已注册 provider） |
-| GET | `/api/asset/list` | 查资产列表，可按 `module` / `assetType` 过滤，按 `updatedTime` 倒序 |
-| GET | `/api/asset/providers` | 列当前已注册的全部 provider |
+| POST | `/api/asset/transition` | 流转资产生命周期状态（非法流转直接拒绝，不落库） |
+| GET | `/api/asset/list` | 查资产清单，可按 `category` / `status` / `owner` 过滤，按 `gmtModified` 倒序 |
+| GET | `/api/asset/detail/{assetCode}` | 查单个资产 |
+| GET | `/api/asset/expiring?days=30` | 即将到期：权益资产看到期日，实物资产看保修到期 |
+| GET | `/api/asset/summary` | 按大类统计资产数量 |
 
-返回体统一是 `com.zifang.util.core.meta.Result` 包装。**这三个端点自身没有鉴权**，认证与租户隔离由宿主应用或网关负责。
-
-### 采集规则
-
-`AssetCollector.collectFromProvider(provider)` 带 `@Transactional`：provider 不健康 → 整轮跳过不落库；`listAssets()` 返回 null → 跳过不落库；按 `assetCode` 逐条比对，查不到则 insert、查得到则 update。`attributes` 字段序列化成**真 JSON**（`JsonUtil.toJson`）落 `z_asset.attributes` 列。
+返回体统一是 `com.zifang.util.core.meta.Result` 包装。**这些端点自身没有鉴权**，认证与租户隔离由宿主应用或网关负责。
 
 ---
 
@@ -67,7 +89,7 @@ public class MyModuleAssetProvider implements AssetProvider {
 
 ```bash
 mvn clean install -DskipTests   # 全 reactor：聚合根 + 3 个模块
-mvn test                        # 1 个测试类、7 支 @Test（core 模块，Mockito 打桩 mapper）
+mvn test                        # core 模块：状态机 / 流转校验 / README 主张自守卫
 ```
 
 构建需要能从 repo1 解析到 `io.github.yuku123:z-boot-parent:1.2.4`（parent 不在磁盘上）。
@@ -105,7 +127,7 @@ mvn test                        # 1 个测试类、7 支 @Test（core 模块，M
 
 ### 建表
 
-**仓内没有 `z_asset` 的建表 SQL** —— 表结构由 `@TableName("z_asset")` 与 `AssetEntity` 的 15 个字段声明（`id` 自增 + `asset_code` / `asset_name` / `asset_type` / `module` / `status` / `endpoint` / `spec` / `attributes` / `tenant_code` / `domain_code` / `collected_at` / `expire_at` / `created_time` / `updated_time`），DDL 由部署侧提供。
+**仓内没有 `z_asset` 的建表 SQL** —— 表结构由 `@TableName("z_asset")` 与 `ZAssetDO` 的 18 个字段声明（`id` 自增 + `asset_code` / `asset_name` / `asset_category` / `asset_type` / `serial_no` / `vendor` / `owner` / `status` / `location` / `cost` / `purchase_date` / `expire_at` / `warranty_expire_at` / `description` / `tenant_code` / `gmt_create` / `gmt_modified`），DDL 由部署侧提供。
 
 ### 管理台壳（本地开发）
 
@@ -125,9 +147,16 @@ npm run dev     # vite，端口由 vite.config.js 固定为 3025
 mvn test
 ```
 
-`z-asset-core` 的 `AssetCollectorTest` 共 7 支 `@Test`，全部用 Mockito 打桩 `AssetMapper`（不打桩则不落库），盯的是 `z_asset.attributes` 这一列的语义：null 时落 null、序列化结果是能被 `JsonUtil.parseObject` 原样解析回的 JSON、值里含 `,` `=` `"` 时仍无歧义；另有两支盯短路条件（provider 不健康、`listAssets()` 返回 null 时确实一库不写），以及一支记录「update 分支当前不刷新 attributes」的现状。
+`z-asset-core` 的测试有四组：
 
-`z-asset-api` 与 `z-asset-web` 无测试代码。
+- `AssetLifecycleServiceTest` —— 状态机：合法流转放行、非法流转拒绝、终态不可再流转；
+- `AssetServiceTest` —— 流转校验（Mockito 打桩 mapper）：资产不存在、缺责任人、非法状态都拒；
+- `AssetMetadataAnnotationTest` —— 注解口径没被摘掉：实体必须带 `@BizModel`、每个字段必须带 `@BizField`、流转方法必须带 `@BizMethod` 与 `@BizCause`；
+- `ReadmeClaimsTest` —— README 里的定量主张（枚举值个数、实体字段数、`<module>` 条数、版本号）跟源码重算值逐条对账，README 改数字即红。
+
+`z-asset-web` 有 `AssetControllerContractTest`：每个端点都必须带 `@BizApi`、有摘要、有业务标签。
+
+`z-asset-api` 无测试代码。
 
 ---
 

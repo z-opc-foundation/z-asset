@@ -17,6 +17,12 @@
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-asset-api</artifactId>
         </dependency>
+        <!-- 注解 API（纯契约 jar）：资产实体与流转方法用 @BizModel / @BizField / @BizMethod /
+             @BizCause 声明业务口径，宿主里的 z-meta 采集器会把它采成元数据。 -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-meta-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-boot-datasource-starter</artifactId>
