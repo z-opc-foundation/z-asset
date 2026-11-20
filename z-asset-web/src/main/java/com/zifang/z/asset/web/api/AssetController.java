@@ -10,6 +10,7 @@ import com.zifang.z.asset.core.service.AssetService;
 import com.zifang.z.meta.api.annotation.BizApi;
 import com.zifang.z.meta.api.annotation.BizField;
 import com.zifang.z.meta.api.annotation.BizParam;
+import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.annotation.Resource;
 import java.util.List;
 import java.util.Map;
 
@@ -123,3 +123,9 @@ public class AssetController {
         }
     }
 }
+
+
+
+
+
+

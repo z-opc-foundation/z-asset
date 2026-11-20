@@ -2,13 +2,13 @@ package com.zifang.z.asset.core.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zifang.z.asset.api.enums.AssetCategory;
-import com.zifang.z.meta.api.annotation.BizCause;
-import com.zifang.z.meta.api.annotation.BizMethod;
-import com.zifang.z.meta.api.annotation.BizParam;
 import com.zifang.z.asset.api.enums.AssetLifecycle;
-import com.zifang.z.meta.api.annotation.BizField;
 import com.zifang.z.asset.core.domain.entity.ZAssetDO;
 import com.zifang.z.asset.core.domain.mapper.ZAssetMapper;
+import com.zifang.z.meta.api.annotation.BizCause;
+import com.zifang.z.meta.api.annotation.BizField;
+import com.zifang.z.meta.api.annotation.BizMethod;
+import com.zifang.z.meta.api.annotation.BizParam;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -119,6 +119,7 @@ public class AssetService {
      * @param assetCode 资产编码
      * @return 资产，不存在返回 null
      */
+    @BizMethod(name = "按编码查资产", module = "z-asset", description = "按编码查资产。", operation = BizMethod.Operation.QUERY)
     public ZAssetDO findByCode(String assetCode) {
         return assetMapper.selectOne(new LambdaQueryWrapper<ZAssetDO>()
                 .eq(ZAssetDO::getAssetCode, assetCode));
@@ -133,3 +134,12 @@ public class AssetService {
         }
     }
 }
+
+
+
+
+
+
+
+
+

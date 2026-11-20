@@ -24,5 +24,10 @@
         <!-- 2026-10-03: OssAdminController / ZOssTenantHookImpl / OssBucketDetailResponse 已归
              z-oss 仓 (z-oss-api controller/dto + z-oss-core hook), 本模块不再需要
              z-oss-core / z-ctc-sso / z-util-core 这三条依赖. -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-meta-api</artifactId>
+            <version>${z-meta.version}</version>
+        </dependency>
     </dependencies>
 </project>
